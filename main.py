@@ -1,9 +1,39 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import socket
 import sys
 import datetime
 import time
 import commands
+import thread
+
+def notify_music_track():
+    global sock,connected
+
+    network = sys.argv[1]
+    port = 6667
+    nick = sys.argv[2]
+    channel = sys.argv[3]
+    speaker = 'fragger_fox'
+
+    while 1:
+        if (connected == True) :       
+            #sock.send('NOTICE ' + channel + ' :' + speaker + ' d(-_-)b hello \r\n')
+            mpc = commands.getoutput('mpc status');
+            track_info = mpc.split ('\n')[0];
+            player_status = mpc.split ('\n')[1];
+
+            artist = track_info.split('-')[0];
+            title = track_info.split('-')[1];
+            current_player_state = player_status.split()[0];
+            current_track_state = player_status.split()[3];
+
+            if ((current_player_state != '[paused]') and (current_track_state == '(5%)')):
+                sock.send('NOTICE ' + channel + ' :d(-_-)b ' + speaker + ' is listening to'+ title +' by '+ artist +' \r\n')
+                time.sleep(20) #sleep for a specified amount of time.
+
+            time.sleep(1) #sleep for a specified amount of time.
 
 def join(network,port,nick,channel):
     global sock,connected
@@ -33,7 +63,7 @@ def main():
 	nick = sys.argv[2]
 	channel = sys.argv[3]
     except IndexError:
-	#Dsplay error and quit
+	#Display error and quit
 	print 'Error: Missing required parameters'
 	print 'Syntax is sakshi.py <network> <nickname> \'<channel>\''
 	sys.exit()
@@ -51,6 +81,7 @@ def main():
 	#Loop to keep listening
 	while connected == True:
 	    try:
+                # This captures the data from IRC
 		data = sock.recv(5120)
                 print data
 		#check for PING from server and reply with PONG if found
@@ -65,19 +96,23 @@ def main():
                     print speaker
                     print message
 
-		    if cmp(speaker, 'r2_d2') == 0 and message.startswith(nick): #bad..get boss from command line
+		    if cmp(speaker, 'fragger_fox') == 0 and message.startswith(nick): #bad..get boss from command line
 			
 			#Modify the command passed to commands.getoutput to suit player of wish
 			if message.find('artist') != -1:
-			    artist = commands.getoutput('qdbus org.kde.amarok /Player GetMetadata | grep \'artist\' | cut -d ":" -f 2 | cut -c 2-')
-			    sock.send('PRIVMSG ' + channel + ' :' + speaker + ' d(-_-)b ' + artist +'\r\n')
-			if message.find('track') != -1:
-			    track = commands.getoutput('qdbus org.kde.amarok /Player GetMetadata | grep \'title\' | cut -d ":" -f 2 | cut -c 2-')
-			    sock.send('PRIVMSG ' + channel + ' :' + speaker + ' d(-_-)b ' + track +'\r\n')
-			if message.find('song') != -1:
-			    artist = commands.getoutput('qdbus org.kde.amarok /Player GetMetadata | grep \'artist\' | cut -d ":" -f 2 | cut -c 2-')
-			    track = commands.getoutput('qdbus org.kde.amarok /Player GetMetadata | grep \'title\' | cut -d ":" -f 2 | cut -c 2-')
-			    sock.send('PRIVMSG ' + channel + ' :' + speaker + ' d(-_-)b ' + track + ' by ' + artist + '\r\n')
+			    #artist = commands.getoutput('qdbus org.kde.amarok /Player GetMetadata | grep \'artist\' | cut -d ":" -f 2 | cut -c 2-')
+			    #sock.send('PRIVMSG ' + channel + ' :' + speaker + ' d(-_-)b ' + artist +'\r\n')
+                            artist = 'sample text'
+                            sock.send('ACTION ' + channel + ' :' + speaker + ' d(-_-)b ' + artist +'\r\n')
+                            
+                            sock.send('NOTICE ' + channel + ' :' + speaker + ' d(-_-)b ' + artist +'\r\n')
+#			if message.find('track') != -1:
+#			    track = commands.getoutput('qdbus org.kde.amarok /Player GetMetadata | grep \'title\' | cut -d ":" -f 2 | cut -c 2-')
+#			    sock.send('PRIVMSG ' + channel + ' :' + speaker + ' d(-_-)b ' + track +'\r\n')
+#			if message.find('song') != -1:
+#			    artist = commands.getoutput('qdbus org.kde.amarok /Player GetMetadata | grep \'artist\' | cut -d ":" -f 2 | cut -c 2-')
+#			    track = commands.getoutput('qdbus org.kde.amarok /Player GetMetadata | grep \'title\' | cut -d ":" -f 2 | cut -c 2-')
+#			    sock.send('PRIVMSG ' + channel + ' :' + speaker + ' d(-_-)b ' + track + ' by ' + artist + '\r\n')
 		    checkpoint=time.time()
             
 		#check for HELO msg and reset checkpoint
@@ -112,4 +147,5 @@ def main():
 	      
 
 if __name__=="__main__":
+    thread.start_new_thread(notify_music_track,());
     main()
